@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "RMB Deals",
+    "slug": "rmb-deals",
+    "version": "1.0.3",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a2e"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.samuelmahama.rmbdeals"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow RMB Deals to access your photos."
+        }
+      ]
+    ],
+    "scheme": "rmb",
+    "primaryColor": "#1a1a2e",
+    "extra": {
+      "eas": {
+        "projectId": "43945030-45d4-4c78-b0e7-6f54d2261b5c"
+      }
+    }
+  }
+}
