@@ -84,3 +84,34 @@ rmbdeals_be/!.vscode/settings.json
 rmbdeals_be/!.vscode/tasks.json
 rmbdeals_be/!.vscode/launch.json
 rmbdeals_be/!.vscode/extensions.json
+
+rmbdeals_app/.expo
+rmbdeals_app/.expo/
+rmbdeals_app/node_modules/
+rmbdeals_app/.expo-shared/
+rmbdeals_app/.expo-types/
+rmbdeals_app/dist/
+rmbdeals_app/web-build/
+
+# Node
+rmbdeals_app/node_modules/
+rmbdeals_app/npm-debug.log*
+rmbdeals_app/yarn-debug.log*
+rmbdeals_app/yarn-error.log*
+rmbdeals_app/package-lock.json
+
+# React Native
+rmbdeals_app/ios/build/
+rmbdeals_app/android/build/
+rmbdeals_app/android/app/build/
+rmbdeals_app/android/app/src/main/assets/
+
+# IDE
+rmbdeals_app/.idea/
+rmbdeals_app/.vscode/
+rmbdeals_app/*.swp
+rmbdeals_app/*.swo
+
+# OS
+rmbdeals_app/.DS_Store
+rmbdeals_app/Thumbs.db
