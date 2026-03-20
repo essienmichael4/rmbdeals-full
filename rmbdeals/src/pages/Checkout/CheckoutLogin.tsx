@@ -61,7 +61,7 @@ const CheckoutLogin = ({trigger, id, setForm}:Props) => {
             setOpen(prev => !prev)
         },onError: (err:any) => {
             if (axios.isAxiosError(err)){
-                toast.error(err?.response?.data?.error, {
+                toast.error(err?.response?.data?.message, {
                     id: "login"
                 })
             }else{

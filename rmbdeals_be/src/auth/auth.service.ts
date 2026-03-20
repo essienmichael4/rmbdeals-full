@@ -75,7 +75,7 @@ async findUser(email:string){
               role: user.role
           }
       }
-      const signedId = await this.signResetPasswordPayload(payload, '30m')
+      const signedId = await this.signResetPasswordPayload(payload)
 
       const link = `https://rmbdeals.com/password-reset?id=${signedId}&email=${user.email}`
 
@@ -132,7 +132,7 @@ async findUser(email:string){
         }
       }
 
-      const signedId = await this.signResetPasswordPayload(payload, '30m')
+      const signedId = await this.signResetPasswordPayload(payload)
 
       const link = `https://rmbdeals.com/password-reset?id=${signedId}&email=${user.email}`
       
@@ -184,9 +184,9 @@ async findUser(email:string){
       })
   }
 
-  async signResetPasswordPayload(payload:PayloadParams, time: string){
-      return await this.jwtService.sign(payload, {
-          expiresIn: time,
+  async signResetPasswordPayload(payload:PayloadParams){
+      return this.jwtService.sign(payload, {
+          expiresIn: "30m",
           secret: process.env.JWT_SECRET_KEY
       })
   }

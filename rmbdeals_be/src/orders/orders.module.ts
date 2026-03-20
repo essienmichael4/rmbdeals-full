@@ -19,9 +19,10 @@ import { AccountService } from 'src/account/account.service';
 import { AccountModule } from 'src/account/account.module';
 import { Account } from 'src/account/entities/account.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), TypeOrmModule.forFeature([Account, Order, OrderBilling, YearHistory, MonthHistory, User, Currency]), UserModule, UploadModule, AuthModule, AccountModule],
+  imports: [ScheduleModule.forRoot(), TypeOrmModule.forFeature([Account, Order, OrderBilling, YearHistory, MonthHistory, User, Currency]), UserModule, UploadModule, AuthModule, AccountModule, HttpModule],
   controllers: [OrdersController],
   providers: [OrdersService, UserService, JwtService, UploadService, AuthService, AccountService],
 })

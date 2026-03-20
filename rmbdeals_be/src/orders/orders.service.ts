@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CheckoutDto, CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
@@ -16,9 +16,13 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AccountService } from 'src/account/account.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { endOfDay, startOfDay, subDays,  } from 'date-fns';
+import { firstValueFrom, identity } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   constructor(
     @InjectRepository(User) private readonly userRepo:Repository<User>,
     @InjectRepository(Currency) private readonly currencyRepo:Repository<Currency>,
@@ -30,7 +34,9 @@ export class OrdersService {
     private readonly authService:AuthService,
     private readonly accountService:AccountService,
     private eventEmitter:EventEmitter2,
-    private readonly dataSource:DataSource
+    private readonly dataSource:DataSource,
+    private readonly configService: ConfigService,
+    private readonly httpService: HttpService,
   ){}
 
   async createOrderForUser(filename: string, buffer:Buffer<ArrayBufferLike>, data:CreateOrderDto, userId: number){
@@ -163,6 +169,9 @@ export class OrdersService {
       const order = await this.orderBilling(id, checkoutDto.name, checkoutDto.email, checkoutDto.whatsapp, checkoutDto.momoName, checkoutDto.notes, user)
       const account = await this.accountService.findAccount()
       this.eventEmitter.emit("order.success", {email: user.email, name: user.name, order, account})
+      await this.sendStatusSms(user.phone, "HELD", id).catch(err =>
+        this.logger.error('SMS notification failed', err),
+      );
       return {order, message:"Order placed successfully"}
     } catch (error) {
       throw error
@@ -176,9 +185,8 @@ export class OrdersService {
       const user = await this.userRepo.findOne({where: {id: registerResponse.id}})
       const order = await this.orderBilling(id, checkoutDto.name, checkoutDto.email, checkoutDto.whatsapp, checkoutDto.momoName, checkoutDto.notes, user)
       const account = await this.accountService.findAccount()
-      this.eventEmitter.emit("order.success", {email: user.email, name: user.name, order, account})
       const queryRunner = this.dataSource.createQueryRunner()
-
+      
       try{
         await queryRunner.connect()
         await queryRunner.startTransaction()
@@ -190,6 +198,10 @@ export class OrdersService {
       }finally{
         await queryRunner.release()
       }
+      this.eventEmitter.emit("order.success", {email: user.email, name: user.name, order, account})
+      await this.sendStatusSms(user.phone, "HELD", id).catch(err =>
+        this.logger.error('SMS notification failed', err),
+      );
 
       return {user: registerResponse, order, message:"Order placed successfully"}
     } catch (error) {
@@ -336,6 +348,9 @@ export class OrdersService {
     })
     const result = await this.orderRepo.update(id, { status });
     this.eventEmitter.emit("order.status", {email: order.user.email, name: order.user.name, order, status})
+    await this.sendStatusSms(order.user.phone, status, id).catch(err =>
+        this.logger.error('SMS notification failed', err),
+      );
     return result
   }
 
@@ -378,6 +393,45 @@ export class OrdersService {
     })
       return await queryRunner.manager.save(YearHistory, {...newYearHistory})
     }
+  }
+
+  private async sendStatusSms(phone: string, status: Status, orderId?: number,): Promise<void> {
+    const message = this.resolveStatusMessage(status, orderId);
+    if (!message) return; // No SMS defined for this status — skip silently
+
+    const payload = {
+      recipient: [phone],
+      sender: 'RMB Deals',
+      message,
+      is_schedule: false,
+      schedule_date: '',
+    };
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `https://api.mnotify.com/api/sms/quick?key=${this.configService.getOrThrow('SMS_API_KEY')}`,
+        payload,
+        { headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    if (response.data?.status !== 'success') {
+      throw new Error(`SMS API returned unexpected response: ${JSON.stringify(response.data)}`);
+    }
+  }
+
+  private resolveStatusMessage(
+    status: Status,
+    orderId?: number,
+  ): string | null {
+    const messages: Partial<Record<Status, string>> = {
+      HELD: `Dear Customer, your order ${orderId} is currently on hold. Make payment to have the order processed. – RMB Deals`,
+      PENDING: `Dear Customer, your order ${orderId} has been received and is currently being processed. We will notify you when order is completed. – RMB Deals`,
+      COMPLETED: `Dear Customer, your order ${orderId} has been successfully completed. Thank you for choosing RMB Deals.`,
+      CANCELLED: `Dear Customer, your order ${orderId} has been cancelled. Kindly place you order again. For any assistance, please contact us. – RMB Deals`,
+    };
+
+    return messages[status] ?? null;
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'daily-order-update' }) // every midnight
